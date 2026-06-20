@@ -120,7 +120,10 @@ function extractSize(title) {
   if (/\bXL\b/i.test(title)) return 'XL';
   if (/\bLarge\b|\bL\b/i.test(title)) return 'L';
   if (/\bSmall\b|\bS\b/i.test(title)) return 'S';
-  return title.split('/')[0].split('×')[0].trim().split(' ')[0];
+  // For desk mats: capture full dimension like "36" × 18"" or "16 x 24 inches"
+  const dim = title.match(/(\d+[""]?\s*[×xX]\s*\d+[""]?(\s*(?:in(?:ches?)?|cm))?)/i);
+  if (dim) return dim[1].replace(/\s+/g, ' ').trim();
+  return title.trim();
 }
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
