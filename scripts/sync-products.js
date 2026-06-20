@@ -177,6 +177,15 @@ async function main() {
   const products = [];
   for (const p of all) {
     const tags = (p.tags || []).map(t => t.toLowerCase().trim());
+
+    // Skip non-desk-mat products (e.g. candles accidentally in the shop)
+    const titleLower = p.title.toLowerCase();
+    const isDesktMat = titleLower.includes('mat') || titleLower.includes('pad') || tags.includes('include');
+    if (!isDesktMat) {
+      console.log(`  Skipping "${p.title}" (not a desk mat — add tag "include" to force-include)`);
+      continue;
+    }
+
     const cats = tags.filter(t => t.startsWith('cat:')).map(t => t.slice(4));
 
     // Largest (highest-priced) variant only
