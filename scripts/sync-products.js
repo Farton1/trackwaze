@@ -147,11 +147,9 @@ async function main() {
 
   // Fetch from Printify
   const data = await httpGet('api.printify.com',
-    `/v1/shops/${resolvedShopId}/products.json?limit=100`,
+    `/v1/shops/${resolvedShopId}/products.json?limit=50`,
     { Authorization: `Bearer ${PRINTIFY_KEY}`, 'User-Agent': 'TrackWaze/1.0' }
   );
-
-  console.log('Raw Printify response:', JSON.stringify(data).slice(0, 500));
   const all = data.data || [];
   console.log(`Printify returned ${all.length} total products`);
 
