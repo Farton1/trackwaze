@@ -135,20 +135,19 @@ async function main() {
     console.log(`Loaded ${Object.keys(existingLinks).length} existing Stripe links`);
   } catch (e) { /* first run or empty file */ }
 
-  // Diagnostic: check all shops for products
+  // Auto-detect the correct shop ID by name (falls back to SHOP_ID env var)
   const shops = await httpGet('api.printify.com', '/v1/shops.json',
     { Authorization: `Bearer ${PRINTIFY_KEY}`, 'User-Agent': 'TrackWaze/1.0' });
-  console.log('All Printify shops:');
-  for (const shop of (Array.isArray(shops) ? shops : [])) {
-    const sd = await httpGet('api.printify.com', `/v1/shops/${shop.id}/products.json?limit=10`,
-      { Authorization: `Bearer ${PRINTIFY_KEY}`, 'User-Agent': 'TrackWaze/1.0' });
-    console.log(`  Shop "${shop.title}" (${shop.id}): ${(sd.data||[]).length} products`);
-  }
+  const shopList = Array.isArray(shops) ? shops : [];
+  const match = shopList.find(s => s.title.toLowerCase().includes('trackwaze'))
+    || shopList.find(s => s.id === parseInt(SHOP_ID))
+    || shopList[0];
+  const resolvedShopId = match ? match.id : SHOP_ID;
+  console.log(`Using shop: "${match ? match.title : 'unknown'}" (${resolvedShopId})`);
 
   // Fetch from Printify
-  console.log(`Fetching products for shop ${SHOP_ID}...`);
   const data = await httpGet('api.printify.com',
-    `/v1/shops/${SHOP_ID}/products.json?limit=100`,
+    `/v1/shops/${resolvedShopId}/products.json?limit=100`,
     { Authorization: `Bearer ${PRINTIFY_KEY}`, 'User-Agent': 'TrackWaze/1.0' }
   );
 
@@ -159,11 +158,11 @@ async function main() {
   for (const p of all.filter(p => !p.is_enabled)) {
     console.log(`  Publishing "${p.title}"...`);
     try {
-      await printifyPost(`/v1/shops/${SHOP_ID}/products/${p.id}/publish.json`, {
+      await printifyPost(`/v1/shops/${resolvedShopId}/products/${p.id}/publish.json`, {
         title: true, description: true, images: true,
         variants: true, tags: true, keyFeatures: true, shipping_template: true,
       });
-      await printifyPost(`/v1/shops/${SHOP_ID}/products/${p.id}/publishing_succeeded.json`, {
+      await printifyPost(`/v1/shops/${resolvedShopId}/products/${p.id}/publishing_succeeded.json`, {
         external: {
           id: String(p.id),
           handle: p.title.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
