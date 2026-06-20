@@ -397,39 +397,28 @@
   </div>
 </section>
 
-<!-- SIZES -->
+<!-- SIZE -->
 <section class="block" id="sizes">
   <div class="wrap">
     <div class="sec-head">
       <div>
-        <div class="sec-tag">// pick your fit</div>
-        <h2 class="disp">From mouse-only to full-desk.</h2>
+        <div class="sec-tag">// the mat</div>
+        <h2 class="disp">One size. Full desk.</h2>
       </div>
-      <p>Measure your free desk space first — then size up. Most players go bigger than they
-        expect.</p>
+      <p>Every TrackWaze mat is the extended XL format — keyboard, mouse, and room to flick, all on one clean surface.</p>
     </div>
-    <div class="size-grid">
-      <div class="size">
-        <div class="box s-sm" aria-hidden="true"></div>
-        <div class="label disp">Small</div>
-        <div class="dim mono">~ mouse + room to flick</div>
-        <div class="for">Tidy desks &amp; low-sens players</div>
-      </div>
-      <div class="size">
-        <div class="box s-lg" aria-hidden="true"></div>
-        <div class="label disp">Large</div>
-        <div class="dim mono">~ keyboard + mouse</div>
-        <div class="for">The default for most setups</div>
-      </div>
-      <div class="size">
-        <div class="box s-xl" aria-hidden="true"></div>
-        <div class="label disp">XL / Desk</div>
-        <div class="dim mono">~ full desk span</div>
-        <div class="for">One clean surface, edge to edge</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:22px">
+      <div class="size" style="grid-column:1/-1;display:flex;align-items:center;gap:32px;text-align:left;padding:32px 36px">
+        <div class="box s-xl" style="flex:none;margin:0" aria-hidden="true"></div>
+        <div>
+          <div class="label disp" style="font-size:22px">XL — Extended Gaming Mat</div>
+          <div class="dim mono" style="margin-top:8px">Fits keyboard + mouse with room to flick at any sensitivity</div>
+          <div class="for" style="margin-top:8px">The only size that makes sense for a real gaming setup</div>
+        </div>
       </div>
     </div>
-    <p class="mono" style="font-size:12px;color:var(--faint);margin-top:20px;text-align:center">
-      ↳ exact dimensions per size shown on each product page at checkout</p>
+    <p class="mono" style="font-size:12px;color:var(--faint);margin-top:18px;text-align:center">
+      ↳ exact dimensions shown on each product page</p>
   </div>
 </section>
 
@@ -605,18 +594,18 @@
   // Tag your Printify products with cat:tech / cat:anime / cat:vaporwave /
   // cat:aesthetic / cat:kawaii / cat:retro  and  stripe:<url>  to wire up buy buttons.
   var FALLBACK = [
-    { id:'f1', title:'Toxin',      description:'Acid-green streaks on near-black. Disappears into a dark setup.',          image:null, categories:['tech'],       stripeUrl:null, sizes:['L','XL'],     price:'29.99', isNew:false, isBestSeller:true  },
-    { id:'f2', title:'Circuit',    description:'Teal reference grid. A clean, technical look that frames your gear.',       image:null, categories:['tech'],       stripeUrl:null, sizes:['S','L','XL'], price:'27.99', isNew:false, isBestSeller:false },
-    { id:'f3', title:'Surge',      description:'Green-to-lime fade. Loud where it matters, quiet under the mouse.',        image:null, categories:['tech'],       stripeUrl:null, sizes:['L','XL'],     price:'29.99', isNew:true,  isBestSeller:false },
-    { id:'f4', title:'Radar',      description:'Sweeping sonar arcs and HUD glow — mission-control energy.',               image:null, categories:['vaporwave'],  stripeUrl:null, sizes:['XL'],         price:'31.99', isNew:false, isBestSeller:false },
-    { id:'f5', title:'Phantom',    description:'Smooth deep-green gradient. Easy on the eyes for long sessions.',          image:null, categories:['aesthetic'],  stripeUrl:null, sizes:['S','L'],      price:'27.99', isNew:false, isBestSeller:false },
-    { id:'f6', title:'Static',     description:'Faint texture, single green core. For setups that let the gear talk.',     image:null, categories:['tech'],       stripeUrl:null, sizes:['S','L','XL'], price:'24.99', isNew:false, isBestSeller:false },
-    { id:'f7', title:'Senshi',     description:'Clean line-art character silhouette on a dark field — anime energy, zero clutter.', image:null, categories:['anime'], stripeUrl:null, sizes:['L','XL'], price:'31.99', isNew:true, isBestSeller:false },
-    { id:'f8', title:'Level Up',   description:'Pixel RPG stat screen: EXP bar, level counter, retro terminal font.',      image:null, categories:['anime','retro'], stripeUrl:null, sizes:['S','L','XL'], price:'29.99', isNew:true, isBestSeller:false },
-    { id:'f9', title:'Neon City',  description:'Grid horizon, palm silhouette, gradient sky. Pure retrowave.',             image:null, categories:['vaporwave'],  stripeUrl:null, sizes:['L','XL'],     price:'29.99', isNew:true,  isBestSeller:false },
-    { id:'f10',title:'Lofi Lab',   description:'Cozy late-night desk scene. Soft tones, rain on the window.',             image:null, categories:['aesthetic'],  stripeUrl:null, sizes:['S','L'],      price:'27.99', isNew:true,  isBestSeller:false },
-    { id:'f11',title:'Pixel Pet',  description:'Tiny sprite companions on a checker field — cute stack of collectibles.',  image:null, categories:['kawaii'],     stripeUrl:null, sizes:['S','L','XL'], price:'26.99', isNew:true,  isBestSeller:false },
-    { id:'f12',title:'8-Bit Arena',description:'Classic arcade marquee art, pixelated score counter, scanline glow.',     image:null, categories:['retro'],      stripeUrl:null, sizes:['S','L','XL'], price:'28.99', isNew:true,  isBestSeller:false },
+    { id:'f1',  title:'Toxin',      description:'Acid-green streaks on near-black. Disappears into a dark setup.',                   image:null, categories:['tech'],          stripeUrl:null, variants:[{size:'XL',price:'29.99',stripeUrl:null}], sizes:['XL'], price:'29.99', isNew:false, isBestSeller:true  },
+    { id:'f2',  title:'Circuit',    description:'Teal reference grid. A clean, technical look that frames your gear.',               image:null, categories:['tech'],          stripeUrl:null, variants:[{size:'XL',price:'27.99',stripeUrl:null}], sizes:['XL'], price:'27.99', isNew:false, isBestSeller:false },
+    { id:'f3',  title:'Surge',      description:'Green-to-lime fade. Loud where it matters, quiet under the mouse.',                image:null, categories:['tech'],          stripeUrl:null, variants:[{size:'XL',price:'29.99',stripeUrl:null}], sizes:['XL'], price:'29.99', isNew:true,  isBestSeller:false },
+    { id:'f4',  title:'Radar',      description:'Sweeping sonar arcs and HUD glow — mission-control energy.',                       image:null, categories:['vaporwave'],     stripeUrl:null, variants:[{size:'XL',price:'31.99',stripeUrl:null}], sizes:['XL'], price:'31.99', isNew:false, isBestSeller:false },
+    { id:'f5',  title:'Phantom',    description:'Smooth deep-green gradient. Easy on the eyes for long sessions.',                  image:null, categories:['aesthetic'],     stripeUrl:null, variants:[{size:'XL',price:'27.99',stripeUrl:null}], sizes:['XL'], price:'27.99', isNew:false, isBestSeller:false },
+    { id:'f6',  title:'Static',     description:'Faint texture, single green core. For setups that let the gear talk.',             image:null, categories:['tech'],          stripeUrl:null, variants:[{size:'XL',price:'24.99',stripeUrl:null}], sizes:['XL'], price:'24.99', isNew:false, isBestSeller:false },
+    { id:'f7',  title:'Senshi',     description:'Clean line-art character silhouette on a dark field — anime energy, zero clutter.',image:null, categories:['anime'],         stripeUrl:null, variants:[{size:'XL',price:'31.99',stripeUrl:null}], sizes:['XL'], price:'31.99', isNew:true,  isBestSeller:false },
+    { id:'f8',  title:'Level Up',   description:'Pixel RPG stat screen: EXP bar, level counter, retro terminal font.',              image:null, categories:['anime','retro'], stripeUrl:null, variants:[{size:'XL',price:'29.99',stripeUrl:null}], sizes:['XL'], price:'29.99', isNew:true,  isBestSeller:false },
+    { id:'f9',  title:'Neon City',  description:'Grid horizon, palm silhouette, gradient sky. Pure retrowave.',                     image:null, categories:['vaporwave'],     stripeUrl:null, variants:[{size:'XL',price:'29.99',stripeUrl:null}], sizes:['XL'], price:'29.99', isNew:true,  isBestSeller:false },
+    { id:'f10', title:'Lofi Lab',   description:'Cozy late-night desk scene. Soft tones, rain on the window.',                     image:null, categories:['aesthetic'],     stripeUrl:null, variants:[{size:'XL',price:'27.99',stripeUrl:null}], sizes:['XL'], price:'27.99', isNew:true,  isBestSeller:false },
+    { id:'f11', title:'Pixel Pet',  description:'Tiny sprite companions on a checker field — cute stack of collectibles.',          image:null, categories:['kawaii'],        stripeUrl:null, variants:[{size:'XL',price:'26.99',stripeUrl:null}], sizes:['XL'], price:'26.99', isNew:true,  isBestSeller:false },
+    { id:'f12', title:'8-Bit Arena',description:'Classic arcade marquee art, pixelated score counter, scanline glow.',             image:null, categories:['retro'],         stripeUrl:null, variants:[{size:'XL',price:'28.99',stripeUrl:null}], sizes:['XL'], price:'28.99', isNew:true,  isBestSeller:false },
   ];
 
   var allProducts = [];

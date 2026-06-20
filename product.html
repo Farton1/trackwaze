@@ -129,24 +129,15 @@
   .product-desc{color:var(--muted);font-size:15px;line-height:1.65;margin-bottom:28px;
     border-left:2px solid var(--green);padding-left:14px}
 
-  /* ---- SIZE PICKER ---- */
-  .picker-label{font-family:'JetBrains Mono';font-size:11px;letter-spacing:1.5px;
-    text-transform:uppercase;color:var(--faint);margin-bottom:12px}
-  .size-opts{display:flex;gap:10px;margin-bottom:28px;flex-wrap:wrap}
-  .size-opt{display:flex;flex-direction:column;align-items:center;gap:4px;
-    padding:12px 18px;border-radius:12px;border:1px solid var(--line);
-    background:var(--surface);cursor:pointer;transition:all .18s;min-width:80px;
-    font-family:'Inter';color:var(--text)}
-  .size-opt:hover{border-color:var(--line-2)}
-  .size-opt.active{border-color:var(--green);
-    background:linear-gradient(135deg,rgba(61,242,106,.12),rgba(180,255,77,.06));
-    box-shadow:0 0 0 1px rgba(61,242,106,.25)}
-  .size-opt .sz-label{font-family:'Chakra Petch';font-weight:600;font-size:18px}
-  .size-opt .sz-dim{font-family:'JetBrains Mono';font-size:9.5px;color:var(--faint);
-    letter-spacing:.5px;text-transform:uppercase;text-align:center;line-height:1.3}
-  .size-opt .sz-price{font-family:'JetBrains Mono';font-size:12px;color:var(--aqua);
-    font-weight:500;margin-top:2px}
-  .size-opt.unavailable{opacity:.35;cursor:not-allowed}
+  /* ---- SIZE INFO ---- */
+  .size-info{display:flex;align-items:center;gap:14px;padding:14px 16px;
+    border:1px solid var(--line);border-radius:12px;background:var(--surface);
+    margin-bottom:28px}
+  .size-info .sz-label{font-family:'Chakra Petch';font-weight:600;font-size:20px;
+    color:var(--green)}
+  .size-info .sz-detail{display:flex;flex-direction:column;gap:2px}
+  .size-info .sz-name{font-size:13px;color:var(--text);font-weight:500}
+  .size-info .sz-dim{font-family:'JetBrains Mono';font-size:11px;color:var(--faint)}
 
   /* ---- BUY BUTTON ---- */
   .buy-wrap{margin-bottom:22px}
@@ -454,27 +445,18 @@ function renderPage() {
     badgesHtml += '<span class="img-badge">' + esc(product.categories[0]) + '</span>';
   }
 
-  // ── Size picker ──
-  var sizesHtml = '';
-  if (hasVariants) {
-    sizesHtml = product.variants.map(function(v, i){
-      return '<button class="size-opt' + (i===0?' active':'') + '" data-index="' + i + '" onclick="selectSize(this,' + i + ')">'
-        + '<span class="sz-label">' + esc(v.size) + '</span>'
-        + '<span class="sz-dim">' + esc(SIZE_DIMS[v.size] || v.size) + '</span>'
-        + '<span class="sz-price">$' + esc(v.price) + '</span>'
-        + '</button>';
-    }).join('');
-  } else {
-    product.sizes.forEach(function(s){
-      sizesHtml += '<button class="size-opt" style="cursor:default">'
-        + '<span class="sz-label">' + esc(s) + '</span>'
-        + '<span class="sz-dim">' + esc(SIZE_DIMS[s] || s) + '</span>'
-        + '</button>';
-    });
-  }
+  // ── Size info (single size) ──
+  var v0 = hasVariants ? product.variants[0] : null;
+  var sizeKey = v0 ? v0.size : (product.sizes[0] || 'XL');
+  var sizesHtml = '<div class="size-info">'
+    + '<span class="sz-label">' + esc(sizeKey) + '</span>'
+    + '<div class="sz-detail">'
+    + '<span class="sz-name">' + esc(SIZE_DIMS[sizeKey] || sizeKey) + '</span>'
+    + '<span class="sz-dim">One size · extended gaming mat</span>'
+    + '</div></div>';
 
   // ── Buy button ──
-  var buyUrl = selectedVariant ? selectedVariant.stripeUrl : product.stripeUrl;
+  var buyUrl = (v0 && v0.stripeUrl) || product.stripeUrl;
   var buyHtml = buyUrl
     ? '<a href="' + esc(buyUrl) + '" id="buyBtn" class="btn btn-primary btn-buy" target="_blank" rel="noopener">Get this mat →</a>'
     : '<div class="btn-buy-disabled" id="buyBtn">Payment link coming soon</div>';
@@ -541,9 +523,8 @@ function renderPage() {
     + '<div class="shipping-note mono">Free shipping on orders over $35</div>'
     + '<p class="product-desc">' + esc(product.description) + '</p>'
 
-    // Size picker
-    + '<div class="picker-label">Select size</div>'
-    + '<div class="size-opts" id="sizeOpts">' + sizesHtml + '</div>'
+    // Size
+    + sizesHtml
 
     // Buy button
     + '<div class="buy-wrap" id="buyWrap">' + buyHtml + '</div>'
@@ -598,38 +579,14 @@ function renderPage() {
   }
 }
 
-function selectSize(btn, index) {
-  document.querySelectorAll('.size-opt').forEach(function(b){ b.classList.remove('active'); });
-  btn.classList.add('active');
-  if (!product.variants || !product.variants[index]) return;
-  selectedVariant = product.variants[index];
-
-  // Update price
-  var priceVal = document.getElementById('priceVal');
-  if (priceVal) priceVal.textContent = selectedVariant.price;
-
-  // Update buy button URL
-  var buyWrap = document.getElementById('buyWrap');
-  if (buyWrap) {
-    var url = selectedVariant.stripeUrl || product.stripeUrl;
-    buyWrap.innerHTML = url
-      ? '<a href="' + esc(url) + '" id="buyBtn" class="btn btn-primary btn-buy" target="_blank" rel="noopener">Get this mat →</a>'
-      : '<div class="btn-buy-disabled" id="buyBtn">Payment link coming soon</div>';
-  }
-
-  updateStickyBar();
-}
-
 function updateStickyBar() {
   var nameEl = document.getElementById('stickyName');
   var priceEl = document.getElementById('stickyPrice');
   var btnEl = document.getElementById('stickyBtn');
   if (!nameEl || !product) return;
   nameEl.textContent = product.title;
-  var price = selectedVariant ? selectedVariant.price : product.price;
-  var size = selectedVariant ? ' · ' + selectedVariant.size : '';
-  priceEl.textContent = '$' + price + ' USD' + size;
-  var url = (selectedVariant && selectedVariant.stripeUrl) || product.stripeUrl;
+  priceEl.textContent = '$' + product.price + ' USD';
+  var url = (product.variants && product.variants[0] && product.variants[0].stripeUrl) || product.stripeUrl;
   if (btnEl) { btnEl.href = url || '#'; btnEl.style.opacity = url ? '1' : '.4'; }
 }
 

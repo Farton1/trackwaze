@@ -56,25 +56,18 @@ async function main() {
         sizeStripeMap[sizeKey] = t.slice(colon + 1);
       });
 
-      // Build per-size variants (deduplicated)
+      // Pick the single largest (highest-priced) variant
       const enabled = p.variants.filter(v => v.is_enabled);
-      const seenSizes = new Set();
-      const variants = [];
-      enabled.forEach(v => {
-        const size = extractSize(v.title);
-        if (!seenSizes.has(size)) {
-          seenSizes.add(size);
-          variants.push({
-            size,
-            price: (v.price / 100).toFixed(2),
-            stripeUrl: sizeStripeMap[size] || globalStripe,
-          });
-        }
-      });
+      const largest = enabled.reduce((best, v) => v.price > best.price ? v : best, enabled[0]);
+      const size = extractSize(largest.title);
+      const variants = [{
+        size,
+        price: (largest.price / 100).toFixed(2),
+        stripeUrl: sizeStripeMap[size] || globalStripe,
+      }];
 
-      const prices = variants.map(v => parseFloat(v.price));
-      const minPrice = prices.length ? Math.min(...prices) : 0;
-      const sizes = variants.map(v => v.size);
+      const minPrice = largest.price;
+      const sizes = [size];
 
       // Up to 4 product images
       const images = p.images.slice(0, 4).map(img => img.src);
