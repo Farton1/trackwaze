@@ -33,6 +33,30 @@ function httpGet(hostname, path, headers) {
   });
 }
 
+function printifyPost(path, body) {
+  const data = JSON.stringify(body);
+  return new Promise((resolve, reject) => {
+    const req = https.request({
+      hostname: 'api.printify.com',
+      path,
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${PRINTIFY_KEY}`,
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(data),
+        'User-Agent': 'TrackWaze/1.0',
+      },
+    }, res => {
+      let out = '';
+      res.on('data', d => (out += d));
+      res.on('end', () => { try { resolve(JSON.parse(out)); } catch (e) { resolve({}); } });
+    });
+    req.on('error', reject);
+    req.write(data);
+    req.end();
+  });
+}
+
 function stripePost(endpoint, params) {
   const body = new URLSearchParams(params).toString();
   return new Promise((resolve, reject) => {
@@ -119,11 +143,31 @@ async function main() {
   );
 
   const all = data.data || [];
-  console.log(`Printify returned ${all.length} total products:`);
-  all.forEach(p => console.log(`  [${p.is_enabled ? 'ENABLED' : 'DISABLED'}] "${p.title}" — visible:${p.visible} status:${JSON.stringify(p.status||'n/a')}`));
+  console.log(`Printify returned ${all.length} total products`);
+
+  // Auto-publish any products still pending (custom integrations require this)
+  for (const p of all.filter(p => !p.is_enabled)) {
+    console.log(`  Publishing "${p.title}"...`);
+    try {
+      await printifyPost(`/v1/shops/${SHOP_ID}/products/${p.id}/publish.json`, {
+        title: true, description: true, images: true,
+        variants: true, tags: true, keyFeatures: true, shipping_template: true,
+      });
+      await printifyPost(`/v1/shops/${SHOP_ID}/products/${p.id}/publishing_succeeded.json`, {
+        external: {
+          id: String(p.id),
+          handle: p.title.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+        },
+      });
+      console.log(`  ✓ Published "${p.title}"`);
+      p.is_enabled = true;
+    } catch (err) {
+      console.error(`  ✗ Failed to publish "${p.title}": ${err.message}`);
+    }
+  }
 
   const products = [];
-  for (const p of all.filter(p => p.is_enabled)) {
+  for (const p of all) {
     const tags = (p.tags || []).map(t => t.toLowerCase().trim());
     const cats = tags.filter(t => t.startsWith('cat:')).map(t => t.slice(4));
 
