@@ -151,6 +151,7 @@ async function main() {
     { Authorization: `Bearer ${PRINTIFY_KEY}`, 'User-Agent': 'TrackWaze/1.0' }
   );
 
+  console.log('Raw Printify response:', JSON.stringify(data).slice(0, 500));
   const all = data.data || [];
   console.log(`Printify returned ${all.length} total products`);
 
