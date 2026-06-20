@@ -2,18 +2,27 @@ const https = require('https');
 const fs = require('fs');
 const path = require('path');
 
-const API_KEY = process.env.PRINTIFY_API_KEY;
+const PRINTIFY_KEY = process.env.PRINTIFY_API_KEY;
 const SHOP_ID = process.env.PRINTIFY_SHOP_ID;
+const STRIPE_KEY = process.env.STRIPE_SECRET_KEY;
+const PRICE_CENTS = parseInt(process.env.PRODUCT_PRICE_CENTS || '2999', 10);
 
-if (!API_KEY || !SHOP_ID) {
+// Shipping countries for Stripe Payment Links
+const SHIP_COUNTRIES = [
+  'US','CA','GB','AU','NZ','IE','DE','FR','NL','SE','NO','DK','FI',
+  'AT','BE','CH','ES','IT','PT','PL','CZ','JP','KR','SG','MX','BR',
+];
+
+if (!PRINTIFY_KEY || !SHOP_ID) {
   console.log('PRINTIFY_API_KEY or PRINTIFY_SHOP_ID not set — skipping sync');
   process.exit(0);
 }
 
-function get(url) {
+// ─── HTTP helpers ────────────────────────────────────────────────────────────
+
+function httpGet(hostname, path, headers) {
   return new Promise((resolve, reject) => {
-    const opts = { headers: { Authorization: `Bearer ${API_KEY}`, 'User-Agent': 'TrackWaze/1.0' } };
-    https.get(url, opts, res => {
+    https.get({ hostname, path, headers }, res => {
       let body = '';
       res.on('data', d => (body += d));
       res.on('end', () => {
@@ -24,6 +33,64 @@ function get(url) {
   });
 }
 
+function stripePost(endpoint, params) {
+  const body = new URLSearchParams(params).toString();
+  return new Promise((resolve, reject) => {
+    const req = https.request({
+      hostname: 'api.stripe.com',
+      path: endpoint,
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${STRIPE_KEY}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Content-Length': Buffer.byteLength(body),
+      },
+    }, res => {
+      let data = '';
+      res.on('data', d => (data += d));
+      res.on('end', () => {
+        try { resolve(JSON.parse(data)); }
+        catch (e) { reject(new Error(data.slice(0, 200))); }
+      });
+    });
+    req.on('error', reject);
+    req.write(body);
+    req.end();
+  });
+}
+
+// ─── Stripe: create product → price → payment link ───────────────────────────
+
+async function createStripeLink(title, description) {
+  const product = await stripePost('/v1/products', {
+    name: `${title} — TrackWaze Desk Mat`,
+    description: description || title,
+  });
+  if (product.error) throw new Error(`Stripe product error: ${product.error.message}`);
+
+  const price = await stripePost('/v1/prices', {
+    product: product.id,
+    unit_amount: PRICE_CENTS,
+    currency: 'usd',
+  });
+  if (price.error) throw new Error(`Stripe price error: ${price.error.message}`);
+
+  const linkParams = {
+    'line_items[0][price]': price.id,
+    'line_items[0][quantity]': '1',
+  };
+  SHIP_COUNTRIES.forEach((c, i) => {
+    linkParams[`shipping_address_collection[allowed_countries][${i}]`] = c;
+  });
+
+  const link = await stripePost('/v1/payment_links', linkParams);
+  if (link.error) throw new Error(`Stripe link error: ${link.error.message}`);
+
+  return link.url;
+}
+
+// ─── Printify helpers ─────────────────────────────────────────────────────────
+
 function extractSize(title) {
   if (/\bXXL\b/i.test(title)) return 'XXL';
   if (/\bXL\b/i.test(title)) return 'XL';
@@ -32,64 +99,66 @@ function extractSize(title) {
   return title.split('/')[0].split('×')[0].trim().split(' ')[0];
 }
 
+// ─── Main ─────────────────────────────────────────────────────────────────────
+
 async function main() {
+  // Load existing products.json to preserve already-created Stripe URLs
+  const outPath = path.join(__dirname, '..', 'products.json');
+  let existingLinks = {};
+  try {
+    const prev = JSON.parse(fs.readFileSync(outPath, 'utf8'));
+    prev.forEach(p => { if (p.stripeUrl) existingLinks[String(p.id)] = p.stripeUrl; });
+    console.log(`Loaded ${Object.keys(existingLinks).length} existing Stripe links`);
+  } catch (e) { /* first run or empty file */ }
+
+  // Fetch from Printify
   console.log(`Fetching products for shop ${SHOP_ID}...`);
-  const data = await get(
-    `https://api.printify.com/v1/shops/${SHOP_ID}/products.json?limit=100`
+  const data = await httpGet('api.printify.com',
+    `/v1/shops/${SHOP_ID}/products.json?limit=100`,
+    { Authorization: `Bearer ${PRINTIFY_KEY}`, 'User-Agent': 'TrackWaze/1.0' }
   );
 
-  const products = (data.data || [])
-    .filter(p => p.is_enabled)
-    .map(p => {
-      const tags = (p.tags || []).map(t => t.toLowerCase().trim());
-      const cats = tags.filter(t => t.startsWith('cat:')).map(t => t.slice(4));
+  const products = [];
+  for (const p of (data.data || []).filter(p => p.is_enabled)) {
+    const tags = (p.tags || []).map(t => t.toLowerCase().trim());
+    const cats = tags.filter(t => t.startsWith('cat:')).map(t => t.slice(4));
 
-      // Global stripe URL (applies to all sizes if no size-specific ones)
-      const globalStripeTag = tags.find(t => t.startsWith('stripe:') && !t.match(/^stripe_\w+:/));
-      const globalStripe = globalStripeTag ? globalStripeTag.slice(7) : null;
+    // Largest (highest-priced) variant only
+    const enabled = p.variants.filter(v => v.is_enabled);
+    if (!enabled.length) continue;
+    const largest = enabled.reduce((best, v) => v.price > best.price ? v : best, enabled[0]);
+    const size = extractSize(largest.title);
+    const price = (largest.price / 100).toFixed(2);
 
-      // Size-specific stripe URLs: tag format  stripe_xl:https://...
-      const sizeStripeMap = {};
-      tags.filter(t => /^stripe_\w+:/.test(t)).forEach(t => {
-        const colon = t.indexOf(':');
-        const sizeKey = t.slice(0, colon).replace('stripe_', '').toUpperCase();
-        sizeStripeMap[sizeKey] = t.slice(colon + 1);
-      });
+    // Stripe URL — reuse existing or auto-create
+    let stripeUrl = existingLinks[String(p.id)] || null;
+    if (!stripeUrl && STRIPE_KEY) {
+      try {
+        console.log(`  Creating Stripe link for "${p.title}"...`);
+        stripeUrl = await createStripeLink(p.title, (p.description || '').replace(/<[^>]*>/g, '').trim().slice(0, 200));
+        console.log(`  → ${stripeUrl}`);
+      } catch (err) {
+        console.error(`  Stripe error for "${p.title}": ${err.message}`);
+      }
+    }
 
-      // Pick the single largest (highest-priced) variant
-      const enabled = p.variants.filter(v => v.is_enabled);
-      const largest = enabled.reduce((best, v) => v.price > best.price ? v : best, enabled[0]);
-      const size = extractSize(largest.title);
-      const variants = [{
-        size,
-        price: (largest.price / 100).toFixed(2),
-        stripeUrl: sizeStripeMap[size] || globalStripe,
-      }];
-
-      const minPrice = largest.price;
-      const sizes = [size];
-
-      // Up to 4 product images
-      const images = p.images.slice(0, 4).map(img => img.src);
-      const defaultImg = p.images.find(img => img.is_default) || p.images[0];
-
-      return {
-        id: p.id,
-        title: p.title,
-        description: (p.description || '').replace(/<[^>]*>/g, '').trim().slice(0, 200),
-        image: defaultImg ? defaultImg.src : null,
-        images,
-        categories: cats.length ? cats : ['tech'],
-        stripeUrl: globalStripe || (variants[0] && variants[0].stripeUrl) || null,
-        variants,
-        sizes,
-        price: minPrice.toFixed(2),
-        isNew: tags.includes('new'),
-        isBestSeller: tags.includes('bestseller'),
-      };
+    const defaultImg = p.images.find(img => img.is_default) || p.images[0];
+    products.push({
+      id: p.id,
+      title: p.title,
+      description: (p.description || '').replace(/<[^>]*>/g, '').trim().slice(0, 200),
+      image: defaultImg ? defaultImg.src : null,
+      images: p.images.slice(0, 4).map(img => img.src),
+      categories: cats.length ? cats : ['tech'],
+      stripeUrl,
+      variants: [{ size, price, stripeUrl }],
+      sizes: [size],
+      price,
+      isNew: tags.includes('new'),
+      isBestSeller: tags.includes('bestseller'),
     });
+  }
 
-  const outPath = path.join(__dirname, '..', 'products.json');
   fs.writeFileSync(outPath, JSON.stringify(products, null, 2));
   console.log(`Synced ${products.length} products → products.json`);
 }
