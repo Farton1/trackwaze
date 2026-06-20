@@ -42,21 +42,55 @@ async function main() {
     .filter(p => p.is_enabled)
     .map(p => {
       const tags = (p.tags || []).map(t => t.toLowerCase().trim());
-      const stripeTag = tags.find(t => t.startsWith('stripe:'));
       const cats = tags.filter(t => t.startsWith('cat:')).map(t => t.slice(4));
+
+      // Global stripe URL (applies to all sizes if no size-specific ones)
+      const globalStripeTag = tags.find(t => t.startsWith('stripe:') && !t.match(/^stripe_\w+:/));
+      const globalStripe = globalStripeTag ? globalStripeTag.slice(7) : null;
+
+      // Size-specific stripe URLs: tag format  stripe_xl:https://...
+      const sizeStripeMap = {};
+      tags.filter(t => /^stripe_\w+:/.test(t)).forEach(t => {
+        const colon = t.indexOf(':');
+        const sizeKey = t.slice(0, colon).replace('stripe_', '').toUpperCase();
+        sizeStripeMap[sizeKey] = t.slice(colon + 1);
+      });
+
+      // Build per-size variants (deduplicated)
       const enabled = p.variants.filter(v => v.is_enabled);
-      const sizes = [...new Set(enabled.map(v => extractSize(v.title)))];
-      const minPrice = enabled.length ? Math.min(...enabled.map(v => v.price)) : 0;
+      const seenSizes = new Set();
+      const variants = [];
+      enabled.forEach(v => {
+        const size = extractSize(v.title);
+        if (!seenSizes.has(size)) {
+          seenSizes.add(size);
+          variants.push({
+            size,
+            price: (v.price / 100).toFixed(2),
+            stripeUrl: sizeStripeMap[size] || globalStripe,
+          });
+        }
+      });
+
+      const prices = variants.map(v => parseFloat(v.price));
+      const minPrice = prices.length ? Math.min(...prices) : 0;
+      const sizes = variants.map(v => v.size);
+
+      // Up to 4 product images
+      const images = p.images.slice(0, 4).map(img => img.src);
       const defaultImg = p.images.find(img => img.is_default) || p.images[0];
+
       return {
         id: p.id,
         title: p.title,
-        description: (p.description || '').replace(/<[^>]*>/g, '').trim().slice(0, 120),
+        description: (p.description || '').replace(/<[^>]*>/g, '').trim().slice(0, 200),
         image: defaultImg ? defaultImg.src : null,
+        images,
         categories: cats.length ? cats : ['tech'],
-        stripeUrl: stripeTag ? stripeTag.slice(7) : null,
+        stripeUrl: globalStripe || (variants[0] && variants[0].stripeUrl) || null,
+        variants,
         sizes,
-        price: (minPrice / 100).toFixed(2),
+        price: minPrice.toFixed(2),
         isNew: tags.includes('new'),
         isBestSeller: tags.includes('bestseller'),
       };

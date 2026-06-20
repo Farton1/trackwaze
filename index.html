@@ -134,6 +134,7 @@
   @keyframes pulse{0%,100%{opacity:.6}50%{opacity:1}}
 
   /* product card */
+  .card-link{display:block;text-decoration:none;color:inherit}
   .card{border:1px solid var(--line);border-radius:18px;overflow:hidden;
     background:var(--surface);transition:transform .25s ease,border-color .25s ease;
     position:relative}
@@ -634,12 +635,11 @@
     var matInner = p.image
       ? '<img src="' + esc(p.image) + '" alt="' + esc(p.title) + '" loading="lazy">'
       : '<div class="sheen"></div>';
-    var buyBtn = p.stripeUrl
-      ? '<a href="' + esc(p.stripeUrl) + '" class="buy-btn" target="_blank" rel="noopener">Buy →</a>'
-      : '';
     var chips = p.sizes.map(function(s){ return '<span class="chip">' + esc(s) + '</span>'; }).join('');
+    var fromLabel = p.variants && p.variants.length > 1 ? 'from ' : '';
 
-    return '<article class="card" data-cats="' + esc(p.categories.join(',')) + '">'
+    return '<a href="product.html?id=' + esc(p.id) + '" class="card-link" data-cats="' + esc(p.categories.join(',')) + '">'
+      + '<article class="card">'
       + '<div class="mat ' + (p.image ? '' : bgClass(index)) + '">'
       + '<span class="tag mono">' + esc(badge) + '</span>'
       + matInner
@@ -648,12 +648,10 @@
       + '<div class="name disp">' + esc(p.title) + '</div>'
       + '<div class="desc">' + esc(p.description) + '</div>'
       + '<div class="card-foot">'
-      + '<div class="price">$' + esc(p.price) + ' <span>USD</span></div>'
-      + '<div style="display:flex;align-items:center;gap:8px">'
+      + '<div class="price">' + fromLabel + '$' + esc(p.price) + ' <span>USD</span></div>'
       + '<div class="chips">' + chips + '</div>'
-      + buyBtn
       + '</div></div>'
-      + '</div></article>';
+      + '</article></a>';
   }
 
   function renderGrid(products, cat) {
