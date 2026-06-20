@@ -135,6 +135,16 @@ async function main() {
     console.log(`Loaded ${Object.keys(existingLinks).length} existing Stripe links`);
   } catch (e) { /* first run or empty file */ }
 
+  // Diagnostic: check all shops for products
+  const shops = await httpGet('api.printify.com', '/v1/shops.json',
+    { Authorization: `Bearer ${PRINTIFY_KEY}`, 'User-Agent': 'TrackWaze/1.0' });
+  console.log('All Printify shops:');
+  for (const shop of (Array.isArray(shops) ? shops : [])) {
+    const sd = await httpGet('api.printify.com', `/v1/shops/${shop.id}/products.json?limit=10`,
+      { Authorization: `Bearer ${PRINTIFY_KEY}`, 'User-Agent': 'TrackWaze/1.0' });
+    console.log(`  Shop "${shop.title}" (${shop.id}): ${(sd.data||[]).length} products`);
+  }
+
   // Fetch from Printify
   console.log(`Fetching products for shop ${SHOP_ID}...`);
   const data = await httpGet('api.printify.com',
