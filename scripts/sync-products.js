@@ -203,7 +203,7 @@ async function main() {
     if (!stripeUrl && STRIPE_KEY) {
       try {
         console.log(`  Creating Stripe link for "${p.title}"...`);
-        stripeUrl = await createStripeLink(p.title, (p.description || '').replace(/<[^>]*>/g, '').trim().slice(0, 200));
+        stripeUrl = await createStripeLink(p.title, (p.description || '').replace(/<[^>]*>/g, '').trim().slice(0, 500));
         console.log(`  → ${stripeUrl}`);
       } catch (err) {
         console.error(`  Stripe error for "${p.title}": ${err.message}`);
@@ -214,7 +214,7 @@ async function main() {
     products.push({
       id: p.id,
       title: p.title,
-      description: (p.description || '').replace(/<[^>]*>/g, '').trim().slice(0, 200),
+      description: (p.description || '').replace(/<[^>]*>/g, '').trim(),
       image: defaultImg ? defaultImg.src : null,
       images: p.images.slice(0, 4).map(img => img.src),
       categories: cats.length ? cats : ['tech'],
