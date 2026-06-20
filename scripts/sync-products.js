@@ -118,8 +118,12 @@ async function main() {
     { Authorization: `Bearer ${PRINTIFY_KEY}`, 'User-Agent': 'TrackWaze/1.0' }
   );
 
+  const all = data.data || [];
+  console.log(`Printify returned ${all.length} total products:`);
+  all.forEach(p => console.log(`  [${p.is_enabled ? 'ENABLED' : 'DISABLED'}] "${p.title}" — visible:${p.visible} status:${JSON.stringify(p.status||'n/a')}`));
+
   const products = [];
-  for (const p of (data.data || []).filter(p => p.is_enabled)) {
+  for (const p of all.filter(p => p.is_enabled)) {
     const tags = (p.tags || []).map(t => t.toLowerCase().trim());
     const cats = tags.filter(t => t.startsWith('cat:')).map(t => t.slice(4));
 
