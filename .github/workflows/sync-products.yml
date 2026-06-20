@@ -1,0 +1,33 @@
+name: Sync Printify Products
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'   # every 30 minutes
+  workflow_dispatch:           # manual trigger from GitHub UI
+  push:
+    branches: [main]
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Fetch products from Printify
+        env:
+          PRINTIFY_API_KEY: ${{ secrets.PRINTIFY_API_KEY }}
+          PRINTIFY_SHOP_ID: ${{ secrets.PRINTIFY_SHOP_ID }}
+        run: node scripts/sync-products.js
+
+      - name: Commit if products.json changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add products.json
+          git diff --cached --quiet || (git commit -m "chore: sync Printify products" && git push)
